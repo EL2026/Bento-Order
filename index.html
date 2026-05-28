@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YARD お弁当注文</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+      background: #fafaf8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 36px 28px 28px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    }
+
+    .header-icon { font-size: 36px; margin-bottom: 8px; }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #999;
+      margin-bottom: 28px;
+    }
+
+    .date-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff7ed;
+      color: #c2610a;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 28px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #888;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    select {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 10px;
+      font-size: 16px;
+      color: #1a1a1a;
+      background: #fff;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='M1 1l7 7 7-7' stroke='%23aaa' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      margin-bottom: 24px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    select:focus { outline: none; border-color: #f97316; }
+    select:disabled { background: #f5f5f5; color: #aaa; cursor: default; }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .bento-card {
+      border: 1.5px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 20px 14px;
+      background: #fff;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      user-select: none;
+    }
+    .bento-card:hover:not(:disabled) {
+      border-color: #f97316;
+      transform: translateY(-1px);
+    }
+    .bento-card.selected {
+      border-color: #f97316;
+      background: #fff7ed;
+    }
+    .bento-card:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+    .bento-card .emoji { font-size: 32px; margin-bottom: 8px; }
+    .bento-card .name { font-size: 17px; font-weight: 700; color: #1a1a1a; }
+    .bento-card .deduction { font-size: 12px; color: #f97316; font-weight: 600; margin-top: 4px; }
+    .bento-card .total { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+    #submit-btn {
+      width: 100%;
+      padding: 17px;
+      background: #f97316;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: 0.02em;
+    }
+    #submit-btn:hover:not(:disabled) {
+      background: #ea6c0a;
+      transform: translateY(-1px);
+    }
+    #submit-btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+    .msg {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+      display: none;
+    }
+    .msg.error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; display: block; }
+    .msg.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; display: block; }
+
+    /* 受付時間外・休日バナー */
+    .closed-wrap {
+      text-align: center;
+      padding: 16px 0 8px;
+    }
+    .closed-wrap .big-icon { font-size: 56px; margin-bottom: 16px; }
+    .closed-wrap h2 { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
+    .closed-wrap p { font-size: 14px; color: #888; line-height: 1.7; white-space: pre-line; }
+
+    .loading { text-align: center; color: #aaa; padding: 32px 0; font-size: 15px; }
+
+    /* デバッグ用: 時刻表示 */
+    .debug-time {
+      font-size: 11px;
+      color: #ccc;
+      text-align: right;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header-icon">🍱</div>
+  <h1>YARD お弁当注文</h1>
+  <p class="subtitle">9:40 までに注文 ・ 土日祝はお休み</p>
+  <div id="main-content"><div class="loading">読み込み中…</div></div>
+  <div class="debug-time" id="clock"></div>
+</div>
+
+<script>
+/* ================================================================
+   ★★★ 設定エリア（ここだけ変更すれば OK）★★★
+   ================================================================ */
+
+// Kintone APIトークン（読み取り＋書き込み権限が必要）
+// ↓ ここを実際のトークンに書き換えてください
+const API_TOKEN = 'VZypK1TAxWG8PjgG9tDqCzOu8SBOkYXiDuneDgPx';
+
+// kintone ドメイン・アプリID（変更不要）
+const DOMAIN = 'ajhdof342k8c.cybozu.com';
+const APP_ID = 398;
+
+// 注文締切時刻
+const DEADLINE_HOUR   = 9;
+const DEADLINE_MINUTE = 40;
+
+// ★ 注文できる名前リスト
+//   キントーンユーザーになったら該当行を削除、新しい人を追加する
+const NAMES = [
+  '高野 彩夏',
+  '岡林 花奈',
+  '石井 哩',
+  '大木 駿輔',
+];
+
+/* ================================================================
+   内部処理（通常は変更不要）
+   ================================================================ */
+
+const BENTO = [
+  { value: '普通', emoji: '🍚', label: '普通ライス', deduction: '天引 ¥200', total: '合計 ¥500' },
+  { value: '大盛', emoji: '🍛', label: '大盛ライス', deduction: '天引 ¥230', total: '合計 ¥530' },
+];
+
+let selectedBento = null;
+
+// YYYY-MM-DD
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function isWeekend() {
+  const d = new Date().getDay();
+  return d === 0 || d === 6;
+}
+
+function isPastDeadline() {
+  const n = new Date();
+  return n.getHours() > DEADLINE_HOUR ||
+    (n.getHours() === DEADLINE_HOUR && n.getMinutes() >= DEADLINE_MINUTE);
+}
+
+async function isHoliday(dateStr) {
+  try {
+    const r = await fetch('https://holidays-jp.github.io/api/v1/date.json');
+    const data = await r.json();
+    return Object.prototype.hasOwnProperty.call(data, dateStr);
+  } catch {
+    return false; // 取得できない場合は通常営業日とみなす
+  }
+}
+
+async function checkDuplicate(name, dateStr) {
+  const q = encodeURIComponent(`名前コピ = "${name}" and 日付_0 = "${dateStr}"`);
+  const url = `https://${DOMAIN}/k/v1/records.json?app=${APP_ID}&query=${q}&totalCount=true&fields[0]=レコード番号`;
+  const r = await fetch(url, { headers: { 'X-Cybozu-API-Token': API_TOKEN } });
+  if (!r.ok) throw new Error('重複確認中にエラーが発生しました');
+  const data = await r.json();
+  return parseInt(data.totalCount) > 0;
+}
+
+async function submitRecord(name, bentoType, dateStr) {
+  const uniqueKey = `${dateStr}_ext_${name}`;
+  const body = {
+    app: APP_ID,
+    record: {
+      名前コピ:  { value: name },
+      弁当種類:  { value: bentoType },
+      日付_0:   { value: dateStr },
+      日付名前: { value: uniqueKey },
+    }
+  };
+  const r = await fetch(`https://${DOMAIN}/k/v1/record.json`, {
+    method: 'POST',
+    headers: {
+      'X-Cybozu-API-Token': API_TOKEN,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const err = await r.json();
+    throw new Error(err.message || 'Kintone への登録に失敗しました');
+  }
+}
+
+// ---- 描画 ----
+
+function renderClosed(type) {
+  const map = {
+    weekend: { icon: '🗓️', title: '本日は週末です',   body: '土日はお弁当のご注文をお休みしています。\n月曜日の朝またご注文ください。' },
+    holiday: { icon: '🎌', title: '本日は祝日です',   body: '祝日はお弁当のご注文をお休みしています。\n次の営業日の朝またご注文ください。' },
+    deadline:{ icon: '⏰', title: '受付時間が過ぎました', body: `注文受付は毎朝 ${DEADLINE_HOUR}:${String(DEADLINE_MINUTE).padStart(2,'0')} までです。\nまた明日の朝にご注文ください。` },
+  };
+  const m = map[type];
+  document.getElementById('main-content').innerHTML = `
+    <div class="closed-wrap">
+      <div class="big-icon">${m.icon}</div>
+      <h2>${m.title}</h2>
+      <p>${m.body}</p>
+    </div>`;
+}
+
+function renderForm(dateStr) {
+  const label = new Date().toLocaleDateString('ja-JP',{ year:'numeric', month:'long', day:'numeric', weekday:'short' });
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="date-badge">📅 ${label} の注文</div>
+
+    <div class="field-label">お名前</div>
+    <select id="name-sel">
+      <option value="">― 選んでください ―</option>
+      ${NAMES.map(n => `<option value="${n}">${n}</option>`).join('')}
+    </select>
+
+    <div class="field-label">お弁当の種類</div>
+    <div class="bento-grid">
+      ${BENTO.map(b => `
+        <button class="bento-card" data-v="${b.value}" onclick="pickBento('${b.value}')">
+          <div class="emoji">${b.emoji}</div>
+          <div class="name">${b.label}</div>
+          <div class="deduction">${b.deduction}</div>
+          <div class="total">${b.total}</div>
+        </button>`).join('')}
+    </div>
+
+    <button id="submit-btn" onclick="handleSubmit('${dateStr}')">注文する</button>
+    <div id="msg" class="msg"></div>
+  `;
+}
+
+function pickBento(val) {
+  selectedBento = val;
+  document.querySelectorAll('.bento-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.v === val);
+  });
+}
+
+function showMsg(type, text) {
+  const el = document.getElementById('msg');
+  el.className = `msg ${type}`;
+  el.textContent = text;
+}
+
+async function handleSubmit(dateStr) {
+  const name = document.getElementById('name-sel').value;
+  if (!name)        { showMsg('error', '名前を選んでください。'); return; }
+  if (!selectedBento){ showMsg('error', 'お弁当の種類を選んでください。'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '送信中…';
+
+  try {
+    const dup = await checkDuplicate(name, dateStr);
+    if (dup) {
+      showMsg('error', `${name} さんは本日すでに注文済みです。`);
+      btn.disabled = false;
+      btn.textContent = '注文する';
+      return;
+    }
+
+    await submitRecord(name, selectedBento, dateStr);
+
+    const label = BENTO.find(b => b.value === selectedBento)?.label;
+    showMsg('success', `✅ 注文完了！\n${name} さん ／ ${label}`);
+    btn.textContent = '✅ 注文済み';
+    document.getElementById('name-sel').disabled = true;
+    document.querySelectorAll('.bento-card').forEach(c => c.disabled = true);
+
+  } catch (e) {
+    showMsg('error', `エラー: ${e.message}`);
+    btn.disabled = false;
+    btn.textContent = '注文する';
+  }
+}
+
+// ---- 時計表示（左下） ----
+function updateClock() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    `${n.getHours()}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ---- 初期化 ----
+async function init() {
+  const today = todayStr();
+  if (isWeekend())              { renderClosed('weekend');  return; }
+  if (await isHoliday(today))   { renderClosed('holiday');  return; }
+  if (isPastDeadline())          { renderClosed('deadline'); return; }
+  renderForm(today);
+}
+
+init();
+</script>
+</body>
+</html>
