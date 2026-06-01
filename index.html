@@ -219,7 +219,7 @@ async function isHoliday(dateStr) {
 
 async function checkDuplicate(name, dateStr) {
   // アルバイト氏名フィールドと日付で重複チェック
-  const q = encodeURIComponent(`アルバイト氏名 = "${name}" and 日付_0 = "${dateStr}"`);
+  const q = encodeURIComponent(`アルバイト氏名 in ("${name}") and 日付_0 = "${dateStr}"`);
   const url = `https://${DOMAIN}/k/v1/records.json?app=${APP_ID}&query=${q}&totalCount=true&fields[0]=レコード番号`;
   const r = await fetch(url, { headers: { 'X-Cybozu-API-Token': API_TOKEN } });
   if (!r.ok) {
